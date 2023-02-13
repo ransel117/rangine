@@ -23,7 +23,7 @@ Line line = {
 };
 
 int main(int argc, char *argv[]) {
-    SDL_Window *window = rg_init(800, 600);
+    SDL_Window *window = rg_init("GAME", 800, 600);
 
     while(!quit) {
 
