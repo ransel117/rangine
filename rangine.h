@@ -87,7 +87,6 @@ static const char* default_shaders[2] = {
 #include <errno.h>
 
 #include <glad/gl.h>
-#include <GL/gl.h>
 #include <SDL2/SDL.h>
 
 #define RANMATH_IMPLEMENTATION
