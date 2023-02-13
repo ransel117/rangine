@@ -14,7 +14,7 @@ or
 ```
 
 ## Contribute
-Feel free to make contributions! Try to fit in with the current code base which may change.
+Feel free to make contributions! Try to fit in with the current codebase which may change.
 
 ## TODO (in no particular order)
 - add audio
