@@ -1,0 +1,3 @@
+[submodule "external/ranmath"]
+	path = external/ranmath
+	url = https://github.com/Ransel117/ranmath.git
