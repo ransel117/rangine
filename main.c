@@ -9,11 +9,11 @@ static bool quit = false;
 vec4 color = {0.5, 0.8, 0.3, 1};
 
 AABB aabb = {
-    .position = {400/3, 300/3},
+    .pos = {400/3, 300/3},
     .size = {32, 32},
 };
 AABB aabb2 = {
-    .position = {400/2, 300/2},
+    .pos = {400/2, 300/2},
     .size = {32, 32},
 };
 Line line = {

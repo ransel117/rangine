@@ -24,9 +24,9 @@
 #ifndef RANGINE_H
 #define RANGINE_H
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 /* GCC-compatible compiler (gcc, clang) */
-#define RANGINE_INLINE static inline __attribute((always_inline))
+#define RANGINE_INLINE static inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
 /* Microsoft */
 #define RANGINE_INLINE static inline __forceinline
@@ -35,6 +35,7 @@
 #define RANGINE_INLINE static inline
 #endif
 
+#include <stdio.h>
 #include <stdbool.h>
 
 #include <SDL2/SDL.h>
@@ -43,7 +44,7 @@
 
 /* ---------------- TYPES ---------------- */
 typedef struct {
-    vec2 position;
+    vec2 pos;
     vec2 size;
 } AABB;
 typedef struct {
@@ -58,6 +59,9 @@ typedef struct {
 } File;
 
 /* ----------------- METHODS ----------------- */
+#define RG_ERROR_RETURN(R, ...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return R; } while(0);
+#define RG_ERROR_EXIT(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); exit(1); } while(0);
+
 RANGINE_INLINE SDL_Window *rg_init(const char*, const u32, const u32);
 RANGINE_INLINE SDL_Window *rg_init_window(const char*, const u32, const u32);
 RANGINE_INLINE u32  rg_shader_create(const char*, const char*);
@@ -92,9 +96,6 @@ static const char* default_shaders[2] = {
 #define RANMATH_IMPLEMENTATION
 #include <ranmath/ranmath.h>
 
-#define ERROR_EXIT(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); exit(1); } while(0);
-#define ERROR_RETURN(R, ...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return R; } while(0);
-
 static u32 m_shader_default;
 static u32 m_texture_color;
 static u32 m_vao_line;
@@ -119,26 +120,26 @@ RANGINE_INLINE SDL_Window *rg_init_window(const char *title, u32 width, u32 heig
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        ERROR_EXIT("Could not init SDL: %s", SDL_GetError());
+        RG_ERROR_EXIT("Could not init SDL: %s", SDL_GetError());
     }
 
     SDL_Window *m_window = SDL_CreateWindow(
-        title,
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        width,
-        height,
-        SDL_WINDOW_OPENGL
-        );
+    title,
+    SDL_WINDOWPOS_CENTERED,
+    SDL_WINDOWPOS_CENTERED,
+    width,
+    height,
+    SDL_WINDOW_OPENGL
+    );
 
     if (!m_window) {
-        ERROR_EXIT("Failed to init window: %s\n", SDL_GetError());
+        RG_ERROR_EXIT("Failed to init window: %s\n", SDL_GetError());
     }
 
     SDL_GL_CreateContext(m_window);
 
     if (gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress) == 0) {
-        ERROR_EXIT("Failed to load GL: %s", SDL_GetError());
+        RG_ERROR_EXIT("Failed to load GL: %s", SDL_GetError());
     }
 
     printf("OpenGL Loaded\n");
@@ -154,7 +155,7 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
 
     File file_vertex = rg_file_read(path_vert);
     if (!file_vertex.is_valid) {
-        ERROR_EXIT("Error reading shader: %s\n", path_vert);
+        RG_ERROR_EXIT("Error reading shader: %s\n", path_vert);
     }
 
     u32 shader_vertex = glCreateShader(GL_VERTEX_SHADER);
@@ -163,12 +164,12 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
     glGetShaderiv(shader_vertex, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(shader_vertex, 512, NULL, log);
-        ERROR_EXIT("Error compiling vertex shader. %s\n", log);
+        RG_ERROR_EXIT("Error compiling vertex shader. %s\n", log);
     }
 
     File file_fragment = rg_file_read(path_frag);
     if (!file_fragment.is_valid) {
-        ERROR_EXIT("Error reading shader: %s\n", path_frag);
+        RG_ERROR_EXIT("Error reading shader: %s\n", path_frag);
     }
 
     u32 shader_fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -177,7 +178,7 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
     glGetShaderiv(shader_fragment, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(shader_fragment, 512, NULL, log);
-        ERROR_EXIT("Error compiling fragment shader. %s\n", log);
+        RG_ERROR_EXIT("Error compiling fragment shader. %s\n", log);
     }
 
     u32 shader = glCreateProgram();
@@ -185,10 +186,9 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
     glAttachShader(shader, shader_fragment);
     glLinkProgram(shader);
     glGetProgramiv(shader, GL_LINK_STATUS, &success);
-
     if (!success) {
         glGetProgramInfoLog(shader, 512, NULL, log);
-        ERROR_EXIT("Error linking shader. %s\n", log);
+        RG_ERROR_EXIT("Error linking shader. %s\n", log);
     }
 
     free(file_vertex.data);
@@ -275,9 +275,9 @@ RANGINE_INLINE void rg_render_end(SDL_Window *window) {
 }
 
 RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
-    RM_MAT4_CVT model;
-    RM_VEC4_CVT line_color;
     f32 x, y;
+    RM_VEC4_CVT line_color;
+    RM_MAT4_CVT line_model;
 
     x = l.end.x - l.start.x;
     y = l.end.y - l.start.y;
@@ -285,12 +285,12 @@ RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
 
     line_color.v = rm_vec4_copy(color);
 
-    model.m = rm_mat4_translate(l.start.x, l.start.y, 0);
+    line_model.m = rm_mat4_translate(l.start.x, l.start.y, 0);
 
     glUseProgram(m_shader_default);
     glLineWidth(l.width);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &model.f[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &line_model.f[0][0]);
     glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, line_color.f);
 
     glBindVertexArray(m_vao_line);
@@ -303,17 +303,17 @@ RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
     glBindVertexArray(0);
 }
 RANGINE_INLINE void rg_aabb_draw(AABB r, vec4 color) {
-    RM_MAT4_CVT model;
     RM_VEC4_CVT aabb_color;
+    RM_MAT4_CVT aabb_model;
 
     aabb_color.v = rm_vec4_copy(color);
 
-    model.m = rm_mat4_translate(r.position.x, r.position.y, 0);
-    model.m = rm_mat4_scale_aniso(model.m, r.size.x, r.size.y, 1);
+    aabb_model.m = rm_mat4_translate(r.pos.x, r.pos.y, 0);
+    aabb_model.m = rm_mat4_scale_aniso(aabb_model.m, r.size.x, r.size.y, 1);
 
     glUseProgram(m_shader_default);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &model.f[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &aabb_model.f[0][0]);
     glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, aabb_color.f);
 
     glBindVertexArray(m_vao_aabb);
@@ -324,21 +324,33 @@ RANGINE_INLINE void rg_aabb_draw(AABB r, vec4 color) {
     glBindVertexArray(0);
 }
 RANGINE_INLINE void rg_aabb_line_draw(AABB r, const f32 width, vec4 color) {
+    vec2 a, b, hsize;
     Line l1, l2, l3, l4;
 
-    l1.width = l2.width = l3.width = l4.width = width;
+    hsize = rm_vec2_scale(r.size, 0.5);
+    a = rm_vec2_add(r.pos, hsize);
+    b = rm_vec2_sub(r.pos, hsize);
 
-    l1.start = rm_vec2_sub(r.position, rm_vec2_scale(r.size, 0.5));
-    l1.end = (vec2){r.position.x + r.size.x * 0.5, r.position.y - r.size.y * 0.5};
-
-    l2.start = rm_vec2_copy(l1.end);
-    l2.end = rm_vec2_add(r.position, rm_vec2_scale(r.size, 0.5));
-
-    l3.start = rm_vec2_copy(l2.end);
-    l3.end = (vec2){r.position.x - r.size.x * 0.5, r.position.y + r.size.y * 0.5};
-
-    l4.start = rm_vec2_copy(l3.end);
-    l4.end = rm_vec2_copy(l1.start);
+    l1 = (Line){
+        rm_vec2_copy(b),
+        (vec2){a.x, b.y},
+        width,
+    };
+    l2 = (Line){
+        rm_vec2_copy(l1.end),
+        rm_vec2_copy(a),
+        width,
+    };
+    l3 = (Line){
+        rm_vec2_copy(l2.end),
+        (vec2){b.x, a.y},
+        width
+    };
+    l4 = (Line){
+        rm_vec2_copy(l3.end),
+        rm_vec2_copy(l1.start),
+        width
+    };
 
     rg_line_draw(l1, color);
     rg_line_draw(l2, color);
@@ -363,7 +375,7 @@ RANGINE_INLINE File rg_file_read(const char *path) {
 
     fp = fopen(path, "rb");
     if (!fp || ferror(fp)) {
-        ERROR_RETURN(file, RG_READ_ERROR_GENERAL, path, errno);
+        RG_ERROR_RETURN(file, RG_READ_ERROR_GENERAL, path, errno);
     }
 
     while (true) {
@@ -371,15 +383,14 @@ RANGINE_INLINE File rg_file_read(const char *path) {
             size = used + RG_READ_CHUNK_SIZE + 1;
             if (size <= used) {
                 free(data);
-                ERROR_RETURN(file, "Input file too large: %s", path);
+                RG_ERROR_RETURN(file, "Input file too large: %s", path);
             }
 
             tmp = realloc(data, size);
             if (!tmp) {
                 free(data);
-                ERROR_RETURN(file, RG_READ_ERROR_MEMORY, path);
+                RG_ERROR_RETURN(file, RG_READ_ERROR_MEMORY, path);
             }
-
             data = tmp;
         }
 
@@ -393,13 +404,13 @@ RANGINE_INLINE File rg_file_read(const char *path) {
 
     if (ferror(fp)) {
         free(data);
-        ERROR_RETURN(file, RG_READ_ERROR_GENERAL, path, errno);
+        RG_ERROR_RETURN(file, RG_READ_ERROR_GENERAL, path, errno);
     }
 
     tmp = realloc(data, used + 1);
     if (!tmp) {
         free(data);
-        ERROR_RETURN(file, RG_READ_ERROR_MEMORY, path);
+        RG_ERROR_RETURN(file, RG_READ_ERROR_MEMORY, path);
     }
 
     data = tmp;
@@ -417,14 +428,13 @@ RANGINE_INLINE i32 rg_file_write(const void *buffer, const size_t size, const ch
 
     fp = fopen(path, "wb");
     if (!fp || ferror(fp)) {
-        ERROR_RETURN(1, "Cannot write file: %s.", path);
+        RG_ERROR_RETURN(1, "Cannot write file: %s.", path);
     }
 
     chunks_written = fwrite(buffer, size, 1, fp);
     fclose(fp);
-
     if (chunks_written != 1) {
-        ERROR_RETURN(1, "Write error. Expected 1 chunk, got %zu.", chunks_written);
+        RG_ERROR_RETURN(1, "Write error. Expected 1 chunk, got %zu.", chunks_written);
     }
 
     return 0;
