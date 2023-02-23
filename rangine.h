@@ -104,7 +104,7 @@ static u32 m_vao_aabb;
 static u32 m_vbo_aabb;
 static u32 m_ebo_aabb;
 
-RANGINE_INLINE SDL_Window *rg_init(const char* title, u32 width, u32 height) {
+RANGINE_INLINE SDL_Window *rg_init(const char* title, const u32 width, const u32 height) {
     SDL_Window *m_window = rg_init_window(title, width, height);
 
     rg_shader_init(&m_shader_default, (f32)width/3, (f32)height/3);
@@ -114,7 +114,7 @@ RANGINE_INLINE SDL_Window *rg_init(const char* title, u32 width, u32 height) {
 
     return m_window;
 }
-RANGINE_INLINE SDL_Window *rg_init_window(const char *title, u32 width, u32 height) {
+RANGINE_INLINE SDL_Window *rg_init_window(const char *title, const u32 width, const u32 height) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
@@ -196,7 +196,7 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
 
     return shader;
 }
-RANGINE_INLINE void rg_shader_init(u32 *shader_default, f32 render_width, f32 render_height) {
+RANGINE_INLINE void rg_shader_init(u32 *shader_default, const f32 render_width, const f32 render_height) {
     RM_MAT4_CVT projection;
 
     projection.m = rm_mat4_ortho(0, render_width, 0, render_height, -2, 2);
