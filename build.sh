@@ -1,39 +1,23 @@
 #!/bin/bash
 
+MUSL_ROOT=$(find /usr -iname 'musl' -type d -not -path '*/\.*')
+MUSL_INC="$MUSL_ROOT/include"
+MUSL_LIB="$MUSL_ROOT/lib"
+MUSL_BIN="$MUSL_ROOT/bin"
+
 EXTERNAL="external"
-GLADINC="$EXTERNAL/glad/include"
-GLADSRC="$EXTERNAL/glad/src"
+GLADDIR="$EXTERNAL/glad"
+GLADINC="$GLADDIR/include"
+GLADSRC="$GLADDIR/src"
 
-CC="cc"
-EXEC="main"
-CFILES="$GLADSRC/gl.c main.c"
-CINCLUDES="-I$EXTERNAL -I$GLADINC"
-CFLAGS="-Wall -Wpedantic -Wshadow -std=c99"
-CLIBS="-lSDL2 -lSDL2main -lGL -lGLEW "
+CC="$MUSL_BIN/musl-gcc"
+CFLAGS="-Wall -Wpedantic -ggdb -std=c99"
 CDEFINES=""
+CINCLUDES="-I$EXTERNAL -I$GLADINC"
+CFILES="$GLADSRC/gl.c main.c"
+CLIBS="-lSDL2 -lSDL2main -lGL -lGLEW"
 
-debug () {
-    CFLAGS="$CFLAGS -ggdb"
-    echo "$CC $CFLAGS $CINCLUDES $CDEFINES $CFILES -o $EXEC $CLIBS"
-    $CC $CFLAGS $CINCLUDES $CDEFINES $CFILES -o $EXEC $CLIBS
-}
+EXEC="main"
 
-release () {
-    CFLAGS="$CFLAGS -march=native -O2"
-    echo "$CC $CFLAGS $CINCLUDES $CDEFINES $CFILES -o $EXEC $CLIBS"
-    $CC $CFLAGS $CINCLUDES $CDEFINES $CFILES -o $EXEC $CLIBS
-}
-default () {
-    release
-}
-
-if [ "${1,,}" == "debug" ]; then
-    debug
-elif [ "${1,,}" == "release" ]; then
-    release
-else
-    default
-fi
-
-echo "./$EXEC"
+$CC $CFLAGS $CDEFINES $CINCLUDES $CFILES -o $EXEC $CLIBS
 ./$EXEC
