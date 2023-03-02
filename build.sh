@@ -13,7 +13,7 @@ GLADSRC="$GLADDIR/src"
 CC="$MUSL_BIN/musl-gcc"
 CFLAGS="-Wall -Wpedantic -ggdb -std=c99"
 CDEFINES=""
-CINCLUDES="-I$EXTERNAL -I$GLADINC -I/usr/include"
+CINCLUDES="-I$EXTERNAL -I$GLADINC"
 CFILES="$GLADSRC/gl.c main.c"
 CLIBS="-lSDL2 -lSDL2main -lGL -lGLEW"
 
