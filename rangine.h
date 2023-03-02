@@ -150,15 +150,17 @@ RANGINE_INLINE SDL_Window *rg_init_window(const char *title, const u32 width, co
     return m_window;
 }
 RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag) {
-    int success;
     char log[512];
+    i32 success;
+    u32 shader_vertex, shader_fragment, shader;
+    File file_vertex, file_fragment;
 
-    File file_vertex = rg_file_read(path_vert);
+    file_vertex = rg_file_read(path_vert);
     if (!file_vertex.is_valid) {
         RG_ERROR_EXIT("Error reading shader: %s\n", path_vert);
     }
 
-    u32 shader_vertex = glCreateShader(GL_VERTEX_SHADER);
+    shader_vertex = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(shader_vertex, 1, (const char *const*)&file_vertex.data, NULL);
     glCompileShader(shader_vertex);
     glGetShaderiv(shader_vertex, GL_COMPILE_STATUS, &success);
@@ -167,13 +169,13 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
         RG_ERROR_EXIT("Error compiling vertex shader. %s\n", log);
     }
 
-    File file_fragment = rg_file_read(path_frag);
+    file_fragment = rg_file_read(path_frag);
     if (!file_fragment.is_valid) {
         RG_ERROR_EXIT("Error reading shader: %s\n", path_frag);
     }
 
-    u32 shader_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(shader_fragment, 1, (const char *const*)&file_fragment.data, NULL);
+    shader_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(shader_fragment, 1, (const char* const*)&file_fragment.data, NULL);
     glCompileShader(shader_fragment);
     glGetShaderiv(shader_fragment, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -181,7 +183,7 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
         RG_ERROR_EXIT("Error compiling fragment shader. %s\n", log);
     }
 
-    u32 shader = glCreateProgram();
+    shader = glCreateProgram();
     glAttachShader(shader, shader_vertex);
     glAttachShader(shader, shader_fragment);
     glLinkProgram(shader);
@@ -197,14 +199,14 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
     return shader;
 }
 RANGINE_INLINE void rg_shader_init(u32 *shader_default, const f32 render_width, const f32 render_height) {
-    RM_MAT4_CVT projection;
+    mat4 projection;
 
-    projection.m = rm_mat4_ortho(0, render_width, 0, render_height, -2, 2);
+    projection = rm_mat4_ortho(0, render_width, 0, render_height, -2, 2);
 
     *shader_default = rg_shader_create(default_shaders[0], default_shaders[1]);
 
     glUseProgram(*shader_default);
-    glUniformMatrix4fv(glGetUniformLocation(*shader_default, "projection"), 1, GL_FALSE, &projection.f[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(*shader_default, "projection"), 1, GL_FALSE, &projection.raw[0][0]);
 }
 RANGINE_INLINE void rg_color_texture_init(u32 *texture) {
     glGenTextures(1, texture);
@@ -232,10 +234,10 @@ RANGINE_INLINE void rg_line_init(u32 *vao, u32 *vbo) {
 RANGINE_INLINE void rg_aabb_init(u32 *vao, u32 *vbo, u32 *ebo) {
     /* x, y, z, u, v */
     f32 vertices[20] = {
-        0.5, 0.5, 0, 0, 0,
-        0.5, -0.5, 0, 0, 1,
+         0.5,  0.5, 0, 0, 0,
+         0.5, -0.5, 0, 0, 1,
         -0.5, -0.5, 0, 1, 1,
-        -0.5, 0.5, 0, 1, 0
+        -0.5,  0.5, 0, 1, 0
     };
 
     u32 indices[6] = {
@@ -275,23 +277,20 @@ RANGINE_INLINE void rg_render_end(SDL_Window *window) {
 }
 
 RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
-    f32 x, y;
     RM_VEC4_CVT line_color;
-    RM_MAT4_CVT line_model;
+    mat4 line_model;
 
-    x = l.end.x - l.start.x;
-    y = l.end.y - l.start.y;
-    f32 line[6] = {0, 0, 0, x, y, 0};
+    f32 line[6] = {0, 0, 0, l.end.x - l.start.x, l.end.y - l.start.y, 0};
 
     line_color.v = rm_vec4_copy(color);
 
-    line_model.m = rm_mat4_translate(l.start.x, l.start.y, 0);
+    line_model = rm_mat4_translate(l.start.x, l.start.y, 0);
 
     glUseProgram(m_shader_default);
     glLineWidth(l.width);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &line_model.f[0][0]);
-    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, line_color.f);
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &line_model.raw[0][0]);
+    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, line_color.raw);
 
     glBindVertexArray(m_vao_line);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo_line);
@@ -304,17 +303,17 @@ RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
 }
 RANGINE_INLINE void rg_aabb_draw(AABB r, vec4 color) {
     RM_VEC4_CVT aabb_color;
-    RM_MAT4_CVT aabb_model;
+    mat4 aabb_model;
 
     aabb_color.v = rm_vec4_copy(color);
 
-    aabb_model.m = rm_mat4_translate(r.pos.x, r.pos.y, 0);
-    aabb_model.m = rm_mat4_scale_aniso(aabb_model.m, r.size.x, r.size.y, 1);
+    aabb_model = rm_mat4_translate(r.pos.x, r.pos.y, 0);
+    aabb_model = rm_mat4_scale_aniso(aabb_model, r.size.x, r.size.y, 1);
 
     glUseProgram(m_shader_default);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &aabb_model.f[0][0]);
-    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, aabb_color.f);
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &aabb_model.raw[0][0]);
+    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, aabb_color.raw);
 
     glBindVertexArray(m_vao_aabb);
 
@@ -363,15 +362,15 @@ RANGINE_INLINE void rg_aabb_line_draw(AABB r, const f32 width, vec4 color) {
 #define RG_READ_ERROR_MEMORY "Not enough free memory to read file: %s"
 
 RANGINE_INLINE File rg_file_read(const char *path) {
-    File file;
-    FILE *fp;
     char *data, *tmp;
     size_t used, size, n;
+    File file;
+    FILE *fp;
 
-    file.is_valid = false;
     data = NULL;
     used = 0;
     size = 0;
+    file.is_valid = false;
 
     fp = fopen(path, "rb");
     if (!fp || ferror(fp)) {
@@ -423,8 +422,8 @@ RANGINE_INLINE File rg_file_read(const char *path) {
     return file;
 }
 RANGINE_INLINE i32 rg_file_write(const void *buffer, const size_t size, const char *path) {
-    FILE *fp;
     size_t chunks_written;
+    FILE *fp;
 
     fp = fopen(path, "wb");
     if (!fp || ferror(fp)) {
