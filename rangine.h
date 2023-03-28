@@ -26,17 +26,16 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 /* GCC-compatible compiler (gcc, clang) */
-#define RANGINE_INLINE static inline __attribute__((always_inline))
+#define RG_INLINE static inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
 /* Microsoft */
-#define RANGINE_INLINE static inline __forceinline
+#define RG_INLINE static inline __forceinline
 #else
 /* Unknown */
-#define RANGINE_INLINE static inline
+#define RG_INLINE static inline
 #endif
 
 #include <stdio.h>
-#include <stdbool.h>
 
 #include <SDL2/SDL.h>
 
@@ -62,21 +61,21 @@ typedef struct {
 #define RG_ERROR_RETURN(R, ...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return R; } while(0);
 #define RG_ERROR_EXIT(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); exit(1); } while(0);
 
-RANGINE_INLINE SDL_Window *rg_init(const char*, const u32, const u32);
-RANGINE_INLINE SDL_Window *rg_init_window(const char*, const u32, const u32);
-RANGINE_INLINE u32  rg_shader_create(const char*, const char*);
-RANGINE_INLINE void rg_shader_init(u32*, const f32, const f32);
-RANGINE_INLINE void rg_color_texture_init(u32*);
-RANGINE_INLINE void rg_line_init(u32*, u32*);
-RANGINE_INLINE void rg_aabb_init(u32*, u32*, u32*);
-RANGINE_INLINE void rg_render_begin(void);
-RANGINE_INLINE void rg_render_end(SDL_Window*);
-RANGINE_INLINE void rg_line_draw(Line, vec4);
-RANGINE_INLINE void rg_aabb_draw(AABB, vec4);
-RANGINE_INLINE void rg_aabb_line_draw(AABB, const f32, vec4);
-RANGINE_INLINE i32  rg_file_write(const void*, const size_t, const char*);
-RANGINE_INLINE File rg_file_read(const char*);
-RANGINE_INLINE i32  rg_exit(SDL_Window*);
+RG_INLINE SDL_Window *rg_init(const char*, const u32, const u32);
+RG_INLINE SDL_Window *rg_init_window(const char*, const u32, const u32);
+RG_INLINE u32  rg_shader_create(const char*, const char*);
+RG_INLINE void rg_shader_init(u32*, const f32, const f32);
+RG_INLINE void rg_color_texture_init(u32*);
+RG_INLINE void rg_line_init(u32*, u32*);
+RG_INLINE void rg_aabb_init(u32*, u32*, u32*);
+RG_INLINE void rg_render_begin(void);
+RG_INLINE void rg_render_end(SDL_Window*);
+RG_INLINE void rg_line_draw(Line, const vec4);
+RG_INLINE void rg_aabb_draw(AABB, const vec4);
+RG_INLINE void rg_aabb_line_draw(AABB, const f32, const vec4);
+RG_INLINE i32  rg_file_write(const void*, const size_t, const char*);
+RG_INLINE File rg_file_read(const char*);
+RG_INLINE i32  rg_exit(SDL_Window*);
 
 static const char* default_shaders[2] = {
     "./shaders/shader_default.vert",
@@ -96,6 +95,11 @@ static const char* default_shaders[2] = {
 #define RANMATH_IMPLEMENTATION
 #include <ranmath/ranmath.h>
 
+/* ---------------- CONSTANTS ---------------- */
+#define RG_READ_CHUNK_SIZE 2097152
+#define RG_READ_ERROR_GENERAL "Error reading file: %s. errno: %d"
+#define RG_READ_ERROR_MEMORY "Not enough free memory to read file: %s"
+
 static u32 m_shader_default;
 static u32 m_texture_color;
 static u32 m_vao_line;
@@ -104,7 +108,7 @@ static u32 m_vao_aabb;
 static u32 m_vbo_aabb;
 static u32 m_ebo_aabb;
 
-RANGINE_INLINE SDL_Window *rg_init(const char* title, const u32 width, const u32 height) {
+RG_INLINE SDL_Window *rg_init(const char* title, const u32 width, const u32 height) {
     SDL_Window *m_window = rg_init_window(title, width, height);
 
     rg_shader_init(&m_shader_default, (f32)width/3, (f32)height/3);
@@ -114,12 +118,12 @@ RANGINE_INLINE SDL_Window *rg_init(const char* title, const u32 width, const u32
 
     return m_window;
 }
-RANGINE_INLINE SDL_Window *rg_init_window(const char *title, const u32 width, const u32 height) {
+RG_INLINE SDL_Window *rg_init_window(const char *title, const u32 width, const u32 height) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         RG_ERROR_EXIT("Could not init SDL: %s", SDL_GetError());
     }
 
@@ -149,7 +153,7 @@ RANGINE_INLINE SDL_Window *rg_init_window(const char *title, const u32 width, co
 
     return m_window;
 }
-RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag) {
+RG_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag) {
     char log[512];
     i32 success;
     u32 shader_vertex, shader_fragment, shader;
@@ -198,7 +202,7 @@ RANGINE_INLINE u32 rg_shader_create(const char *path_vert, const char *path_frag
 
     return shader;
 }
-RANGINE_INLINE void rg_shader_init(u32 *shader_default, const f32 render_width, const f32 render_height) {
+RG_INLINE void rg_shader_init(u32 *shader_default, const f32 render_width, const f32 render_height) {
     mat4 projection;
 
     projection = rm_mat4_ortho(0, render_width, 0, render_height, -2, 2);
@@ -208,7 +212,7 @@ RANGINE_INLINE void rg_shader_init(u32 *shader_default, const f32 render_width, 
     glUseProgram(*shader_default);
     glUniformMatrix4fv(glGetUniformLocation(*shader_default, "projection"), 1, GL_FALSE, &projection.raw[0][0]);
 }
-RANGINE_INLINE void rg_color_texture_init(u32 *texture) {
+RG_INLINE void rg_color_texture_init(u32 *texture) {
     glGenTextures(1, texture);
     glBindTexture(GL_TEXTURE_2D, *texture);
 
@@ -217,7 +221,7 @@ RANGINE_INLINE void rg_color_texture_init(u32 *texture) {
 
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-RANGINE_INLINE void rg_line_init(u32 *vao, u32 *vbo) {
+RG_INLINE void rg_line_init(u32 *vao, u32 *vbo) {
     glGenVertexArrays(1, vao);
     glBindVertexArray(*vao);
 
@@ -231,7 +235,7 @@ RANGINE_INLINE void rg_line_init(u32 *vao, u32 *vbo) {
 
     glBindVertexArray(0);
 }
-RANGINE_INLINE void rg_aabb_init(u32 *vao, u32 *vbo, u32 *ebo) {
+RG_INLINE void rg_aabb_init(u32 *vao, u32 *vbo, u32 *ebo) {
     /* x, y, z, u, v */
     f32 vertices[20] = {
          0.5,  0.5, 0, 0, 0,
@@ -268,16 +272,16 @@ RANGINE_INLINE void rg_aabb_init(u32 *vao, u32 *vbo, u32 *ebo) {
     glBindVertexArray(0);
 }
 
-RANGINE_INLINE void rg_render_begin(void) {
+RG_INLINE void rg_render_begin(void) {
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 }
-RANGINE_INLINE void rg_render_end(SDL_Window *window) {
+RG_INLINE void rg_render_end(SDL_Window *window) {
     SDL_GL_SwapWindow(window);
 }
 
-RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
-    RM_VEC4_CVT line_color;
+RG_INLINE void rg_line_draw(Line l, const vec4 color) {
+    vec4_cvt line_color;
     mat4 line_model;
 
     f32 line[6] = {0, 0, 0, l.end.x - l.start.x, l.end.y - l.start.y, 0};
@@ -301,8 +305,8 @@ RANGINE_INLINE void rg_line_draw(Line l, vec4 color) {
 
     glBindVertexArray(0);
 }
-RANGINE_INLINE void rg_aabb_draw(AABB r, vec4 color) {
-    RM_VEC4_CVT aabb_color;
+RG_INLINE void rg_aabb_draw(AABB r, const vec4 color) {
+    vec4_cvt aabb_color;
     mat4 aabb_model;
 
     aabb_color.v = rm_vec4_copy(color);
@@ -322,7 +326,7 @@ RANGINE_INLINE void rg_aabb_draw(AABB r, vec4 color) {
 
     glBindVertexArray(0);
 }
-RANGINE_INLINE void rg_aabb_line_draw(AABB r, const f32 width, vec4 color) {
+RG_INLINE void rg_aabb_line_draw(AABB r, const f32 width, const vec4 color) {
     vec2 a, b, hsize;
     Line l1, l2, l3, l4;
 
@@ -357,11 +361,7 @@ RANGINE_INLINE void rg_aabb_line_draw(AABB r, const f32 width, vec4 color) {
     rg_line_draw(l4, color);
 }
 
-#define RG_READ_CHUNK_SIZE 2097152
-#define RG_READ_ERROR_GENERAL "Error reading file: %s. errno: %d"
-#define RG_READ_ERROR_MEMORY "Not enough free memory to read file: %s"
-
-RANGINE_INLINE File rg_file_read(const char *path) {
+RG_INLINE File rg_file_read(const char *path) {
     char *data, *tmp;
     size_t used, size, n;
     File file;
@@ -421,7 +421,7 @@ RANGINE_INLINE File rg_file_read(const char *path) {
 
     return file;
 }
-RANGINE_INLINE i32 rg_file_write(const void *buffer, const size_t size, const char *path) {
+RG_INLINE i32 rg_file_write(const void *buffer, const size_t size, const char *path) {
     size_t chunks_written;
     FILE *fp;
 
@@ -439,7 +439,7 @@ RANGINE_INLINE i32 rg_file_write(const void *buffer, const size_t size, const ch
     return 0;
 }
 
-RANGINE_INLINE i32 rg_exit(SDL_Window *window) {
+RG_INLINE i32 rg_exit(SDL_Window *window) {
     glDeleteVertexArrays(1, &m_vao_line);
     glDeleteVertexArrays(1, &m_vao_aabb);
     glDeleteBuffers(1, &m_vbo_line);
@@ -448,6 +448,7 @@ RANGINE_INLINE i32 rg_exit(SDL_Window *window) {
     glDeleteProgram(m_shader_default);
 
     SDL_DestroyWindow(window);
+    SDL_QuitSubSystem(SDL_INIT_EVERYTHING);
     SDL_Quit();
 
     return 0;

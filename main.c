@@ -1,9 +1,6 @@
 #define RANGINE_IMPLEMENTATION
 #include "rangine.h"
 
-#include <stdio.h>
-#include <stdbool.h>
-
 static bool quit = false;
 
 vec4 color = {0.5, 0.8, 0.3, 1};
