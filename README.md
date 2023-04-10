@@ -5,11 +5,8 @@ Aiming to be a single header stb-style library.
 
 ## How to use
 Include header in project:
-```
+```C
 #include <rangine.h>
-```
-or
-```
 #include "rangine.h"
 ```
 
