@@ -1,5 +1,5 @@
 # rangine
-Game engine by me.
+Game engine library by me.
 
 Aiming to be a single header stb-style library.
 
