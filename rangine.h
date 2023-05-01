@@ -58,8 +58,16 @@ typedef struct {
 } File;
 
 /* ----------------- METHODS ----------------- */
-#define RG_ERROR_RETURN(R, ...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); return R; } while(0);
-#define RG_ERROR_EXIT(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); exit(1); } while(0);
+#define RG_ERROR_RETURN(R, ...) do {            \
+        fprintf(stderr, __VA_ARGS__);           \
+        fprintf(stderr, "\n");                  \
+        return R;                               \
+    } while(0);
+#define RG_ERROR_EXIT(...) do {                 \
+        fprintf(stderr, __VA_ARGS__);           \
+        fprintf(stderr, "\n");                  \
+        exit(1);                                \
+    } while(0);
 
 RG_INLINE SDL_Window *rg_init(const char*, const u32, const u32);
 RG_INLINE SDL_Window *rg_init_window(const char*, const u32, const u32);
@@ -81,7 +89,6 @@ static const char* default_shaders[2] = {
     "./shaders/shader_default.vert",
     "./shaders/shader_default.frag",
 };
-
 #endif /* RANGINE_H */
 
 #ifdef RANGINE_IMPLEMENTATION
@@ -127,14 +134,12 @@ RG_INLINE SDL_Window *rg_init_window(const char *title, const u32 width, const u
         RG_ERROR_EXIT("Could not init SDL: %s", SDL_GetError());
     }
 
-    SDL_Window *m_window = SDL_CreateWindow(
-    title,
-    SDL_WINDOWPOS_CENTERED,
-    SDL_WINDOWPOS_CENTERED,
-    width,
-    height,
-    SDL_WINDOW_OPENGL
-    );
+    SDL_Window *m_window = SDL_CreateWindow(title,
+                                            SDL_WINDOWPOS_CENTERED,
+                                            SDL_WINDOWPOS_CENTERED,
+                                            width,
+                                            height,
+                                            SDL_WINDOW_OPENGL);
 
     if (!m_window) {
         RG_ERROR_EXIT("Failed to init window: %s\n", SDL_GetError());
@@ -238,8 +243,8 @@ RG_INLINE void rg_line_init(u32 *vao, u32 *vbo) {
 RG_INLINE void rg_aabb_init(u32 *vao, u32 *vbo, u32 *ebo) {
     /* x, y, z, u, v */
     f32 vertices[20] = {
-         0.5,  0.5, 0, 0, 0,
-         0.5, -0.5, 0, 0, 1,
+        0.5,  0.5, 0, 0, 0,
+        0.5, -0.5, 0, 0, 1,
         -0.5, -0.5, 0, 1, 1,
         -0.5,  0.5, 0, 1, 0
     };
@@ -281,12 +286,9 @@ RG_INLINE void rg_render_end(SDL_Window *window) {
 }
 
 RG_INLINE void rg_line_draw(Line l, const vec4 color) {
-    vec4_cvt line_color;
     mat4 line_model;
 
     f32 line[6] = {0, 0, 0, l.end.x - l.start.x, l.end.y - l.start.y, 0};
-
-    line_color.v = rm_vec4_copy(color);
 
     line_model = rm_mat4_translate(l.start.x, l.start.y, 0);
 
@@ -294,7 +296,7 @@ RG_INLINE void rg_line_draw(Line l, const vec4 color) {
     glLineWidth(l.width);
 
     glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &line_model.raw[0][0]);
-    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, line_color.raw);
+    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, color.raw);
 
     glBindVertexArray(m_vao_line);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo_line);
@@ -306,10 +308,7 @@ RG_INLINE void rg_line_draw(Line l, const vec4 color) {
     glBindVertexArray(0);
 }
 RG_INLINE void rg_aabb_draw(AABB r, const vec4 color) {
-    vec4_cvt aabb_color;
     mat4 aabb_model;
-
-    aabb_color.v = rm_vec4_copy(color);
 
     aabb_model = rm_mat4_translate(r.pos.x, r.pos.y, 0);
     aabb_model = rm_mat4_scale_aniso(aabb_model, r.size.x, r.size.y, 1);
@@ -317,7 +316,7 @@ RG_INLINE void rg_aabb_draw(AABB r, const vec4 color) {
     glUseProgram(m_shader_default);
 
     glUniformMatrix4fv(glGetUniformLocation(m_shader_default, "model"), 1, GL_FALSE, &aabb_model.raw[0][0]);
-    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, aabb_color.raw);
+    glUniform4fv(glGetUniformLocation(m_shader_default, "color"), 1, color.raw);
 
     glBindVertexArray(m_vao_aabb);
 
@@ -336,7 +335,7 @@ RG_INLINE void rg_aabb_line_draw(AABB r, const f32 width, const vec4 color) {
 
     l1 = (Line){
         rm_vec2_copy(b),
-        (vec2){a.x, b.y},
+        (vec2){{{a.x, b.y}}},
         width,
     };
     l2 = (Line){
@@ -346,7 +345,7 @@ RG_INLINE void rg_aabb_line_draw(AABB r, const f32 width, const vec4 color) {
     };
     l3 = (Line){
         rm_vec2_copy(l2.end),
-        (vec2){b.x, a.y},
+        (vec2){{{b.x, a.y}}},
         width
     };
     l4 = (Line){

@@ -6,11 +6,11 @@ GLADINC="$GLADDIR/include"
 GLADSRC="$GLADDIR/src"
 
 CC="gcc"
-CFLAGS="-Wall -Wpedantic -ggdb -std=c99"
+CFLAGS="-Wall -Wpedantic -ggdb -std=c11"
 CDEFINES=""
 CINCLUDES="-I$EXTERNAL -I$GLADINC"
 CFILES="$GLADSRC/gl.c main.c"
-CLIBS="-lSDL2 -lSDL2main -lGL -lGLEW"
+CLIBS="-lSDL2 -lGL"
 
 EXEC="main"
 
